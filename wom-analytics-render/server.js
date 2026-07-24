@@ -168,18 +168,32 @@ app.post('/api/analyze', async (req, res) => {
     }
 
     const data = await r.json();
+    const stopReason = data.stop_reason;
     const texto = (data.content || [])
       .map((b) => (b.type === 'text' ? b.text : ''))
       .join('\n')
       .trim();
 
+    console.log('Anthropic OK -> stop_reason=%s, caracteres=%d, uso=%j', stopReason, texto.length, data.usage);
+    if (texto.length === 0) {
+      console.error('Respuesta SIN texto. Data cruda:', JSON.stringify(data).slice(0, 1200));
+    }
+
     let analisis;
     try {
       analisis = extraerJSON(texto);
     } catch (e) {
-      console.error('No se pudo parsear el JSON de la IA:', e.message);
+      console.error('No se pudo parsear el JSON de la IA:', e.message, '| stop_reason:', stopReason, '| inicio:', texto.slice(0, 300));
+      const pista =
+        stopReason === 'max_tokens'
+          ? 'La respuesta se truncó por longitud. '
+          : texto.length === 0
+          ? 'La IA devolvió una respuesta vacía (revisa el modelo o el saldo). '
+          : '';
       return res.status(502).json({
-        error: 'La IA no devolvió un JSON válido. Intenta reformular la solicitud.',
+        error: pista + 'La IA no devolvió un JSON válido. Intenta reformular la solicitud.',
+        stop_reason: stopReason || null,
+        caracteres: texto.length,
         crudo: texto.slice(0, 2000)
       });
     }
