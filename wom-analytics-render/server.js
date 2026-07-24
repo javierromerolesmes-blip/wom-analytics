@@ -153,6 +153,7 @@ app.post('/api/analyze', async (req, res) => {
       body: JSON.stringify({
         model: modelo || MODEL,
         max_tokens: 8000,
+        thinking: { type: 'disabled' },
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userMessage }]
       })
