@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WOM · Analytics Workbench</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- Header -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">W</div>
+        <div>
+          <h1>WOM <span>· Analytics</span></h1>
+          <p>Análisis de datos asistido por IA · Canal digital</p>
+        </div>
+      </div>
+      <div class="model-pill">
+        <span>Modelo</span>
+        <select id="model">
+          <option value="claude-sonnet-5">Sonnet 5 (rápido)</option>
+          <option value="claude-opus-4-8">Opus 4.8 (profundo)</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- Paso 1: cargar archivo -->
+    <section class="card">
+      <div class="step-label"><b>1</b> Cargar archivo</div>
+      <div class="dropzone" id="dropzone">
+        <div class="dz-icon">📄</div>
+        <div class="dz-main">Arrastra tu archivo o <u>búscalo en tu equipo</u></div>
+        <div class="dz-sub">Acepta .xlsx, .csv, .tsv o .txt · detecta separador, fechas, decimales y subtotales</div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.tsv,.txt,text/csv" hidden />
+      </div>
+
+      <div class="file-row" id="fileRow" style="display:none;">
+        <span class="file-tag"><span class="dot"></span><span id="fileName">—</span></span>
+        <div class="enc-row">
+          <label for="encoding">Codificación</label>
+          <select id="encoding">
+            <option value="utf-8">UTF-8</option>
+            <option value="windows-1252">Windows-1252</option>
+            <option value="iso-8859-1">ISO-8859-1 (Latin-1)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="schema-wrap" id="schemaWrap" style="display:none;">
+        <table class="schema" id="schemaTable">
+          <thead>
+            <tr><th>Columna</th><th>Tipo detectado</th><th>Ejemplo</th><th>Ajustar</th></tr>
+          </thead>
+          <tbody id="schemaBody"></tbody>
+        </table>
+        <div class="rowcount" id="rowCount"></div>
+      </div>
+    </section>
+
+    <!-- Paso 2: solicitud -->
+    <section class="card">
+      <div class="step-label"><b>2</b> Describir el análisis</div>
+      <textarea id="req" placeholder="Ej.: Quiero un informe comparativo del comportamiento del funnel en mayo vs junio, resaltando dónde se pierde más conversión y por qué."></textarea>
+      <div class="chips" id="chips"></div>
+      <div class="actions">
+        <button class="btn btn-primary" id="analyzeBtn" disabled>Analizar</button>
+        <button class="btn btn-ghost" id="resetBtn" style="display:none;">Nueva solicitud</button>
+      </div>
+    </section>
+
+    <!-- Loading -->
+    <div class="loading card" id="loading">
+      <div class="spinner"></div>
+      <div class="lmsg" id="loadingMsg">Interpretando la solicitud y modelando los datos…</div>
+    </div>
+
+    <!-- Error -->
+    <div class="errbox" id="errbox">
+      <b>No se pudo completar el análisis.</b>
+      <div id="errMsg"></div>
+      <pre id="errDetail"></pre>
+    </div>
+
+    <!-- Resultados -->
+    <div id="results">
+      <div class="report-head">
+        <h2 id="rTitulo"></h2>
+        <div class="sub" id="rSubtitulo"></div>
+      </div>
+      <div class="exec" id="rResumen"></div>
+
+      <div class="actions" style="margin-top:18px;">
+        <button class="btn btn-primary" id="exportBtn">⬇ Exportar PowerPoint</button>
+      </div>
+
+      <div class="section-title" id="kpiTitle" style="display:none;">Indicadores clave</div>
+      <div class="kpi-grid" id="kpiGrid"></div>
+
+      <div class="section-title" id="chartTitle" style="display:none;">Visualizaciones</div>
+      <div class="charts-grid" id="chartsGrid"></div>
+
+      <div class="section-title" id="diagTitle" style="display:none;">Diagnóstico y evaluación</div>
+      <div class="diag-grid" id="diagGrid"></div>
+
+      <div class="section-title" id="listTitle" style="display:none;">Hallazgos y próximos pasos</div>
+      <div class="two-col" id="listWrap"></div>
+    </div>
+
+    <div class="footer">WOM Colombia · Herramienta interna de análisis · Datos procesados bajo demanda</div>
+  </div>
+
+  <!-- Librerías (CDN) -->
+  <!-- Librerías servidas localmente (sin depender de CDN externa) -->
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="vendor/papaparse.min.js"></script>
+  <script src="vendor/chart.umd.min.js"></script>
+  <script src="vendor/pptxgen.bundle.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

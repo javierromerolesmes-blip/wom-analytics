@@ -1,0 +1,17 @@
+{
+  "name": "wom-analytics-workbench",
+  "version": "1.1.0",
+  "description": "Workbench de análisis de datos con IA (Claude API) — WOM Colombia, canal digital",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
