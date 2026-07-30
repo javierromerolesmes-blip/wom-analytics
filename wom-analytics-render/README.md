@@ -6,6 +6,67 @@ La IA interpreta la solicitud, identifica fechas/métricas/dimensiones y modela 
 
 ---
 
+## Novedades v1.2 — memoria colectiva
+
+Además de analizar, la herramienta ahora recuerda. Tres capas:
+
+1. **Bitácora.** Cada ejecución queda registrada: quién, qué prompt, sobre qué
+   archivo, qué modelo, qué costó, qué resultó, cómo se calificó, qué se corrigió
+   y qué decisión se tomó. Se guardan **metadatos, nunca filas de datos**.
+2. **Biblioteca.** Prompts reutilizables con propietario, versión, estado, las
+   columnas que necesitan y los errores frecuentes a evitar. Un prompt se vuelve
+   candidato automáticamente con 3 usos de al menos 2 personas y 70% de
+   calificaciones útiles; la curaduría solo aprueba o descarta.
+3. **Reglas aprendidas.** Cuando una corrección se repite, se escribe como regla.
+   Las reglas aprobadas entran en el prompt de sistema de todos los análisis
+   siguientes. Esto es lo que hace que la herramienta mejore con el uso: el modelo
+   no se reentrena, pero sí recibe de vuelta lo que ya funcionó.
+
+Identidad: cada persona se identifica con su correo corporativo (validado contra
+`DOMINIO_PERMITIDO`). Está diseñado para reemplazarse por SSO de Entra ID sin
+tocar el resto: solo cambia de dónde sale el campo `usuario`.
+
+Gobierno: los correos listados en `CURADORES` son los únicos que pueden aprobar
+prompts y reglas. Todo lo demás se propone.
+
+Almacenamiento: archivo local en `DATOS_DIR` como base, con espejo opcional a
+SharePoint (ver `docs/SHAREPOINT.md`). Si SharePoint falla, la escritura se encola
+y se reintenta; la herramienta nunca se bloquea por eso.
+
+### Corrección crítica incluida en esta versión
+
+En Sonnet 5 y Opus 5 el razonamiento interno viene **activado por defecto**. Para
+una tarea que solo debe devolver JSON, el modelo consumía todo `max_tokens`
+razonando y devolvía texto vacío, lo que rompía el parseo. La llamada ahora envía
+`thinking: { type: 'disabled' }`. Dos cosas relacionadas que hay que respetar en
+estos modelos:
+
+- `thinking: { type: 'enabled', budget_tokens: N }` ya **no existe**: devuelve 400.
+  Si algún día se quiere razonamiento, la forma válida es `{ type: 'adaptive' }`.
+- `temperature`, `top_p` y `top_k` con valores distintos al default devuelven 400.
+  Por eso el cuerpo de la petición no los incluye. No agregarlos.
+
+### Endpoints nuevos
+
+| Método y ruta | Para qué |
+|---|---|
+| `POST /api/feedback` | Calificar una ejecución y registrar corrección o decisión |
+| `GET /api/bitacora` | Listar ejecuciones |
+| `GET /api/metricas` | Uso por persona, tasa de éxito, costo 30 días, candidatos |
+| `GET/POST /api/biblioteca` | Consultar y proponer prompts |
+| `POST /api/biblioteca/:id/estado` | Aprobar u obsoletar (curaduría) |
+| `GET/POST /api/reglas` | Consultar y proponer reglas |
+| `POST /api/reglas/:id/estado` | Aprobar o descartar (curaduría) |
+| `GET /api/export?formato=csv\|json` | Descargar la memoria completa |
+| `POST /api/sincronizar` | Forzar el envío de la cola a SharePoint (curaduría) |
+| `GET /api/sharepoint/estado` | Diagnóstico del conector (curaduría) |
+
+### Advertencia de despliegue
+
+En hosts con disco efímero (como el plan gratuito de Render) la carpeta `datos/`
+se borra en cada despliegue. Mientras SharePoint no esté conectado, exporta la
+bitácora antes de redesplegar, o mueve `DATOS_DIR` a un disco persistente.
+
 ## Cómo funciona (arquitectura)
 
 ```

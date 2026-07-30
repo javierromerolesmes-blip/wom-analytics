@@ -21,14 +21,31 @@
           <p>Análisis de datos asistido por IA · Canal digital</p>
         </div>
       </div>
-      <div class="model-pill">
-        <span>Modelo</span>
-        <select id="model">
-          <option value="claude-sonnet-5">Sonnet 5 (rápido)</option>
-          <option value="claude-opus-4-8">Opus 4.8 (profundo)</option>
-        </select>
+      <div class="head-right">
+        <div class="user-pill">
+          <span>Quién</span>
+          <input id="userInput" type="email" placeholder="tu.correo@wom.co" autocomplete="email" />
+          <span class="badge-curador" id="userBadge" style="display:none;">curaduría</span>
+        </div>
+        <div class="model-pill">
+          <span>Modelo</span>
+          <select id="model">
+            <option value="claude-sonnet-5">Sonnet 5 (rápido)</option>
+            <option value="claude-opus-5">Opus 5 (profundo)</option>
+          </select>
+        </div>
       </div>
     </header>
+
+    <div class="user-aviso" id="userAviso"></div>
+
+    <nav class="tabs">
+      <button class="tab activa" data-vista="analisis">Análisis</button>
+      <button class="tab" data-vista="biblioteca">Biblioteca</button>
+      <button class="tab" data-vista="bitacora">Bitácora</button>
+    </nav>
+
+    <div id="vista-analisis">
 
     <!-- Paso 1: cargar archivo -->
     <section class="card">
@@ -67,6 +84,7 @@
     <section class="card">
       <div class="step-label"><b>2</b> Describir el análisis</div>
       <textarea id="req" placeholder="Ej.: Quiero un informe comparativo del comportamiento del funnel en mayo vs junio, resaltando dónde se pierde más conversión y por qué."></textarea>
+      <div class="prompt-aviso" id="promptAviso" style="display:none;"></div>
       <div class="chips" id="chips"></div>
       <div class="actions">
         <button class="btn btn-primary" id="analyzeBtn" disabled>Analizar</button>
@@ -110,6 +128,106 @@
 
       <div class="section-title" id="listTitle" style="display:none;">Hallazgos y próximos pasos</div>
       <div class="two-col" id="listWrap"></div>
+
+      <!-- Capa 1: bitácora. Un clic obligatorio-ligero, el detalle es opcional. -->
+      <div class="card feedback" id="feedback" style="display:none;">
+        <div class="fb-pregunta">¿Te sirvió este análisis?</div>
+        <div class="fb-botones">
+          <button class="btn btn-ghost" id="fbUtil">Sí, me sirvió</button>
+          <button class="btn btn-ghost" id="fbNoUtil">No del todo</button>
+        </div>
+        <div id="fbDetalle"></div>
+        <div class="fb-estado" id="fbEstado"></div>
+        <div class="fb-meta" id="fbMeta"></div>
+      </div>
+    </div>
+    </div>
+
+    <!-- ================= BIBLIOTECA (capa 2) ================= -->
+    <div id="vista-biblioteca" style="display:none;">
+      <section class="card">
+        <div class="step-label"><b>2</b> Biblioteca de prompts</div>
+        <p class="card-intro">Prompts que ya funcionaron, con quién los mantiene y qué columnas necesitan. Usa uno tal cual o pártelo como base.</p>
+        <div class="bib-controles">
+          <input id="bibBuscar" class="input" type="search" placeholder="Buscar por título, texto o etiqueta" />
+          <select id="bibFiltro" class="input">
+            <option value="aprobado">Aprobados</option>
+            <option value="propuesto">Propuestos</option>
+            <option value="obsoleto">Obsoletos</option>
+            <option value="todos">Todos</option>
+          </select>
+          <button class="btn btn-ghost" onclick="abrirFormPrompt()">Proponer prompt</button>
+        </div>
+
+        <div class="form-prompt card-inner" id="formPrompt" style="display:none;">
+          <label class="fb-label" for="fpTitulo">Título corto</label>
+          <input id="fpTitulo" class="input" placeholder="Ej.: Comparativo de funnel mes vs mes" />
+          <label class="fb-label" for="fpTexto">Texto del prompt</label>
+          <textarea id="fpTexto" class="fb-texto" rows="3"></textarea>
+          <div class="form-fila">
+            <div>
+              <label class="fb-label" for="fpCaso">Caso de uso</label>
+              <select id="fpCaso" class="input"></select>
+            </div>
+            <div>
+              <label class="fb-label" for="fpRequisitos">Columnas que necesita (separadas por coma)</label>
+              <input id="fpRequisitos" class="input" />
+            </div>
+          </div>
+          <label class="fb-label" for="fpNotas">Nota para quien lo reutilice</label>
+          <input id="fpNotas" class="input" placeholder="Ej.: sirve solo si el archivo trae un registro por día." />
+          <label class="fb-label" for="fpErrores">Error frecuente a evitar</label>
+          <input id="fpErrores" class="input" placeholder="Ej.: no incluir la fila Total de la tabla dinámica." />
+          <div class="fb-acciones">
+            <button class="btn btn-primary" onclick="guardarPrompt()">Guardar prompt</button>
+            <button class="btn btn-ghost" onclick="document.getElementById('formPrompt').style.display='none'">Cancelar</button>
+          </div>
+          <div class="fb-estado" id="fpEstado"></div>
+        </div>
+
+        <div id="bibliotecaLista" class="bib-lista"></div>
+      </section>
+
+      <section class="card">
+        <div class="step-label"><b>3</b> Reglas aprendidas</div>
+        <p class="card-intro">Cuando una corrección se repite, escríbela aquí. Las reglas aprobadas entran en el prompt de sistema de todos los análisis siguientes: es la memoria que sí cambia el comportamiento del modelo.</p>
+        <div class="regla-form">
+          <input id="reglaTexto" class="input" placeholder="Ej.: si un periodo está incompleto, comparar por tasa diaria y advertirlo." />
+          <button class="btn btn-ghost" onclick="proponerRegla()">Proponer regla</button>
+        </div>
+        <div class="fb-estado" id="reglaEstado"></div>
+        <div id="reglasLista" class="reglas-lista"></div>
+      </section>
+    </div>
+
+    <!-- ================= BITÁCORA (capa 1 + gobierno) ================= -->
+    <div id="vista-bitacora" style="display:none;">
+      <section class="card">
+        <div class="step-label"><b>4</b> Uso y desempeño</div>
+        <div id="metricasStrip" class="met-strip"></div>
+        <div class="sync-row">
+          <div class="sync-estado" id="estadoSync"></div>
+          <div class="sync-acciones">
+            <button class="btn btn-ghost btn-sm" onclick="exportar('csv')">Exportar CSV</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportar('json')">Exportar JSON</button>
+            <button class="btn btn-ghost btn-sm" onclick="sincronizarAhora()">Sincronizar a SharePoint</button>
+          </div>
+        </div>
+        <div class="section-title">Quién usa la herramienta</div>
+        <div id="usuariosLista" class="usuarios-lista"></div>
+      </section>
+
+      <section class="card">
+        <div class="step-label"><b>5</b> Candidatos a la biblioteca</div>
+        <p class="card-intro">Prompts que ya se ganaron el puesto según el criterio del equipo. Aprobar es un clic; nadie llena fichas a mano.</p>
+        <div id="candidatosLista" class="cand-lista"></div>
+      </section>
+
+      <section class="card">
+        <div class="step-label"><b>6</b> Registro de ejecuciones</div>
+        <p class="card-intro">Qué se probó, quién, sobre qué archivo, qué resultó y qué se corrigió. Solo metadatos: ninguna fila de datos sale de tu equipo hacia este registro.</p>
+        <div id="bitacoraTabla" class="tabla-wrap"></div>
+      </section>
     </div>
 
     <div class="footer">WOM Colombia · Herramienta interna de análisis · Datos procesados bajo demanda</div>
@@ -122,5 +240,6 @@
   <script src="vendor/chart.umd.min.js"></script>
   <script src="vendor/pptxgen.bundle.js"></script>
   <script src="app.js"></script>
+  <script src="memoria.js"></script>
 </body>
 </html>

@@ -16,7 +16,12 @@ const state = {
   fields: [],        // nombres de columnas en orden
   schema: [],        // [{ name, type }]
   charts: [],        // instancias Chart.js activas
-  lastAnalysis: null // último JSON de análisis (para exportar)
+  lastAnalysis: null, // último JSON de análisis (para exportar)
+  // ---- Trazabilidad para la bitácora ----
+  fileHash: null,      // huella SHA-256 del archivo (nunca su contenido)
+  idEjecucion: null,   // id del registro de la ejecución en curso
+  promptIdOrigen: null, // si la solicitud vino de la biblioteca
+  reintentoDe: null    // id de la ejecución que se está corrigiendo
 };
 
 let MAX_FILAS_IA = 5000;
@@ -68,7 +73,11 @@ function handleFile(file) {
   state.fileName = file.name;
   state.ext = (file.name.split('.').pop() || '').toLowerCase();
   const reader = new FileReader();
-  reader.onload = () => { state.buffer = reader.result; reparse(); };
+  reader.onload = async () => {
+    state.buffer = reader.result;
+    state.fileHash = await huella(reader.result);
+    reparse();
+  };
   reader.readAsArrayBuffer(file);
   $('fileName').textContent = file.name;
   $('fileRow').style.display = 'flex';
@@ -262,6 +271,7 @@ analyzeBtn.addEventListener('click', analyze);
 $('resetBtn').addEventListener('click', () => location.reload());
 
 async function analyze() {
+  if (!usuarioActual()) { pedirIdentificacion(); return; }
   hideError();
   $('results').classList.remove('show');
   setLoading(true);
@@ -275,7 +285,13 @@ async function analyze() {
     sampleCSV,
     rowCount: state.rows.length,
     truncated: state.rows.length > MAX_FILAS_IA,
-    modelo: $('model').value
+    modelo: $('model').value,
+    // Identidad y trazabilidad (sin datos crudos)
+    usuario: usuarioActual(),
+    archivo: state.fileName,
+    archivo_hash: state.fileHash,
+    prompt_id_origen: state.promptIdOrigen,
+    reintento_de: state.reintentoDe
   };
 
   try {
@@ -287,7 +303,10 @@ async function analyze() {
     const data = await res.json();
     if (!res.ok) { showError(data.error || 'Error del servidor.', data.detalle || data.crudo); return; }
     state.lastAnalysis = data.analisis;
+    state.idEjecucion = data.id_ejecucion || null;
+    state.reintentoDe = null;
     renderResults(data.analisis);
+    mostrarCalificacion(data);
   } catch (err) {
     showError('No se pudo contactar el servidor.', String(err));
   } finally {
@@ -578,6 +597,8 @@ function exportPPTX() {
 
   const nombre = (a.titulo || 'Analisis_WOM').replace(/[^a-z0-9]+/gi, '_').slice(0, 50);
   pptx.writeFile({ fileName: `${nombre}.pptx` });
+  // Señal implícita: exportar es el voto positivo más fuerte que existe.
+  enviarFeedback({ exporto_pptx: true });
 }
 
 // =========================================================================
